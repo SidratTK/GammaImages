@@ -48,7 +48,7 @@ if size(imgIn,3)==3      % 3D RGB image provided
     imgVal = imghsv(:,:,3)-0.5;  % bring to [-0.5 0.5]
 end
 if ~isscalar(imgIn) && size(imgIn,3)==1 % 2D Value image provided
-    imghsv = cat(3,zeros(size(imgIn)), ones(size(imgIn)), imgIn); % HSV at h=0,s=1, BW
+    imghsv = cat(3,zeros(size(imgIn)), zeros(size(imgIn)), imgIn); % HSV at h=0,s=0, BW
     imgRGB = hsv2rgb(imghsv);
     imgVal = imgIn-0.5;          % bring to [-0.5 0.5]
 end
@@ -99,6 +99,11 @@ if showflag
     implots(1) = subplot(211); implots(2) = subplot(212); 
     makeImPltLims(a,e,widthPatch,degppix,implots(1),imgis);
     makeImPltLims(a,e,widthPatch,degppix,implots(2),filt1);
+    mPr = round(mP,2);
+    text(0.0, 1.1, 'Image','Parent',implots(1),'units','normalized','fontSize',11,'fontWeight','bold');
+    txtis = ['Filter: ' 'Sz ',num2str(mPr(1)),' ,SF ',num2str(mPr(2)),' ,Or ',num2str(rad2deg(mPr(3)))];
+    text(0.0, 1.1, txtis,'Parent',implots(2),'units','normalized','fontSize',11,'fontWeight','bold');
+    text(0.7, 1.1, ['P=',num2str(round(imgResp,2))],'Parent',implots(2),'units','normalized','fontSize',11,'fontWeight','bold');
 end
 
 end 
