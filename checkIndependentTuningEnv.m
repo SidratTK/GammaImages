@@ -5,6 +5,8 @@
 % Output is value of separability of variables for all protocol types
 % for both monkeys
 
+% added option of plotting for 1 elec-171220
+
 function [] = checkIndependentTuningEnv()
 
 % these paths may be used
@@ -50,6 +52,17 @@ for sub = 1:2
             dG    = load(fname);
             delGuse = squeeze(dG.delGamma{pt});
             [r,ptemp,g,sepind] = checkIndependentTuning(delGuse);
+            if strcmp(subject,'alpaH') && elecis==41     % display for typical elec
+                varH = dG.parameterCombinations{pt}.oValsUnique;
+                if strcmp(protocolTypes{pt},'SizeOri'),
+                    varV = dG.parameterCombinations{pt}.sValsUnique;
+                elseif strcmp(protocolTypes{pt},'SFOri')
+                    varV = dG.parameterCombinations{pt}.fValsUnique;
+                elseif strcmp(protocolTypes{pt},'ConOri')
+                    varV = dG.parameterCombinations{pt}.cValsUnique;
+                end
+                [r,ptemp,g,sepind] = checkIndependentTuning(delGuse,1,varH,varV);
+            end
             rsq{sub,pt}(e) = r^2;
             p{sub,pt}(e)   = ptemp; 
             gof{sub,pt}(e) = g;

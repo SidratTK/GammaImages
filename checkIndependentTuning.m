@@ -16,15 +16,16 @@
 % STK 091220
 % 101220: updates to normalise data2D so it behaves like a prob distribn.
 % Make sure only +ve values are input
+% added option of plotting marginals - 171220
 
 
 % make dummy data example
-% data2D = rand(3,3);        % 2 dimensional data
+% data2DIn = rand(3,3);        % 2 dimensional data
 % parV = [0:pi/4:pi]; mparV = pi/2; sparV = pi/8; margV1 = pdf('Normal',parV,mparV,sparV); margV1 = margV1(:); 
 % parH = [1:4];     mparH = 2; sparH = 1;    margH1 = pdf('Normal',parH,mparH,sparH);
 % data2DIn = margV1 * margH1;
 
-function [rout,pout,gof,sepindex] = checkIndependentTuning(data2DIn,showfig)
+function [rout,pout,gof,sepindex] = checkIndependentTuning(data2DIn,showfig,labH,labV)
 if ~exist('showfig','var'), showfig=0;   end
 
 % data values tells how likely a chosen input combination is to generate a strong response. 
@@ -34,6 +35,8 @@ if ~exist('showfig','var'), showfig=0;   end
 % the 3 conditions of being a pdf are met: +ve, sum=1, independent samples
 
 data2D = data2DIn/sum(sum(data2DIn));
+varH   = 1:size(data2D,2);
+varV   = 1:size(data2D,1);
 
 % get marginals
 margV = sum(data2D,2);    % marginal of Vertical param
@@ -57,13 +60,36 @@ sepindex = singvec(1)^2/(sum(singvec.^2));
 
 % display
 if showfig
-    figure;
-    subplot(211);
-    imagesc(data2D);
-    title('2D tuning');
-    subplot(212);
-    imagesc(data2DInd);
-    title('2D separable tuning');
+    figH = figure;
+    figH.Units = 'centimeters';
+    figH.PaperType  = 'a4';
+    figH.PaperUnits = 'centimeters';
+    figH.PaperSize  = [17.5 10]; % figH.PaperSize  = [17.8 25.1];
+    figH.PaperOrientation = 'Portrait';
+    figH.PaperPosition = [0 0 figH.PaperSize];
+    figH.Color = [1 1 1];
+    figH.Position = [0 0 figH.PaperSize];
+    figH.PaperUnits = 'normalized';
+    
+    plot2D = getPlotHandles(1,1,[0.25 0.15 0.3 0.3], 0.02,0.02);
+    plot2DIn = getPlotHandles(1,1,[0.65 0.15 0.3 0.3], 0.02,0.02);    
+    plotMh = getPlotHandles(1,1,[0.25 0.65 0.3 0.15], 0.02,0.02);
+    plotMv = getPlotHandles(1,1,[0.075 0.15 0.1 0.3], 0.02,0.02);
+    
+    axes(plot2D); imagesc(data2D);
+    title(plot2D,'2D tuning');
+    
+    axes(plot2DIn); imagesc(data2DInd);
+    title(plot2DIn,'2D separable tuning');
+    
+    plot(plotMh,varH,margH,'LineWidth',2);
+    plot(plotMv,varV,margV,'LineWidth',2); camroll(plotMv,90);
+    
+    set(plot2D,'XTick',varH,'XTickLabel',labH,'YTick',varV,'YTickLabel',labV,'tickdir','out','box','off');
+    set(plot2DIn,'XTick',varH,'XTickLabel',labH,'YTick',varV,'YTickLabel',labV,'tickdir','out','box','off')
+    set(plotMh,'XTick',varH,'XTickLabel',labH,'tickdir','out','box','off');
+    set(plotMv,'XTick',varV,'XTickLabel',labV,'tickdir','out','box','off');
+    
     
     printf('\n');
     disp(['Variance explained by independent model is ',num2str(100*(r(2).^2)),'% ']);
