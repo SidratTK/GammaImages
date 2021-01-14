@@ -1,21 +1,22 @@
 % this code is to check independence
 % Responses to 2 variables are input 
 % like SFOri or SizeOri data. responses can be LFP power in gamma band.
-% computes marginal responses by averaging across rows or cols
+% computes marginal responses by averaging across rows or cols, and SVD
+% singular vectors
 % computes estimated joint matrix if 2 distributions were independent- 
-% product of marginals
-% see also Mazer et al., 2002 PNAS who follow a similar marginal analysis
+% from SVD factors or as product of marginals or sum of margs
+% see also Mazer et al., 2002 PNAS who follow a similar analysis
 % the observed joint tuning (data) and estimated separable tuning (prod of
-% marginals) are compared via the Pearson correlation coefficient, the square of
+% marginals) are compared via the Pearson correlation coefficient squared,
 % which represents the fraction of variance in the data shared by the estimate.
 % Note that the product of the marginal tuning may not be the same order of
 % magnitude as the observed data, but the correl coeff is not affected by
 % intercept. 
-% also calculate separability index as in Mazer et al.
+% also calculate separability index using singular vals as in Mazer et al.
 % see Pena & Konishi compare additive (marginals) & multiplicative (factors) models
 % use Model fitting to get the separable estimates. The R2 in linear model is
 % v.v.close to vals obtained by data & importantly gives F statistic.
-% REFS: Mazer et al., 2002, PNAS, Pena & Konishi, 2001, Science,
+% REFS: Mazer et al., 2002, PNAS; Pena & Konishi, 2001, Science,
 
 % STK 091220
 % 101220: normalise data2D so it behaves like a prob distribn. Make sure only +ve values are input
@@ -68,9 +69,9 @@ data2DIndp = margV*margH*sumis;     % column vector x row vector
 rdta_margprd = r(2); pdta_margprd = pr(2);
 
 % 4B. separable sum of marginals
-data2DInds  = sumis*(repmat(margV,[1,size(data2D,2)]) + repmat(margH,[size(data2D,1),1]));  % col val + row val
-[r,pr]      = corr([data2DInds(:), data2DIn(:)]);
-rdta_margsum= r(2); pdta_margsum = pr(2);
+% data2DInds  = sumis*(repmat(margV,[1,size(data2D,2)]) + repmat(margH,[size(data2D,1),1]));  % col val + row val
+% [r,pr]      = corr([data2DInds(:), data2DIn(:)]);
+% rdta_margsum= r(2); pdta_margsum = pr(2);
 
 % 4C. separable product of svd factors 
 data2Dsvd = factV * S(1,1) * factH';      
@@ -168,7 +169,10 @@ if showfig
     set(plotMh,'XTick',varH,'XTickLabel',labH,'tickdir','out','box','off','fontWeight','bold');
     set(plotMv,'XTick',varV,'XTickLabel',labV,'tickdir','out','box','off','fontWeight','bold');  
     
-    set(plots1, 'box','off');
+    set(plots1, 'tickdir','out','box','off','FontWeight','bold');
+    
+    text(0.1,0.95, ['Marg'],'Parent',plotMh,'Units','normalized','FontSize',9,'FontWeight','bold','Color','b');
+    text(0.1,0.8, ['SVD'],'Parent',plotMh,'Units','normalized','FontSize',9,'FontWeight','bold','Color','r');
     
     text(1.01,0.9, ['R2=',num2str(round(r2margprd,2))],'Parent',plot2Dprd,'Units','normalized','FontSize',10);
     text(1.01,0.9, ['R2=',num2str(round(r2svdprd,2)) ],'Parent',plot2Dsvd,'Units','normalized','FontSize',10);
@@ -180,12 +184,18 @@ if showfig
 %     text(1.01,0.7, ['p =',num2str(round(p_svdprd,2))], 'Parent',plot2Dsvd,'Units','normalized','FontSize',10);
 %     text(-0.1,0.7, ['p =',num2str(round(p_margsum,2))],'Parent',plot2Dsum,'Units','normalized','FontSize',10);
 
+    text(-0.25,1.15,'A','Parent',plot2D,'Units','normalized','FontSize',12,'FontWeight','bold');
+    text(-0.20,1.10,'B','Parent',plots1,'Units','normalized','FontSize',12,'FontWeight','bold');
+    text(-0.20,1.10,'C','Parent',plot2Dsvd,'Units','normalized','FontSize',12,'FontWeight','bold');
+    text(-0.20,1.10,'D','Parent',plot2Dsum,'Units','normalized','FontSize',12,'FontWeight','bold');
+    text(-0.20,1.10,'E','Parent',plot2Dprd,'Units','normalized','FontSize',12,'FontWeight','bold');
+
     printf('\n');
     disp(['Variance explained by product of marginals is ',num2str(100*(rdta_margprd.^2)),'% ']);
     disp(['Variance explained by model fit of marginals product is ',num2str(100*r2margprd),'% .',...
         ' model F-val= ',num2str(round(f_margprd,2)),' p= ',num2str(round(p_margprd,3))]);
     disp(['Chi2 test for difference bw observed & independent model data is h = ',num2str(hchi)]);
-    disp(['Variance explained by sum of marginals is ',num2str(100*(rdta_margsum.^2)),'% ']);
+%     disp(['Variance explained by sum of marginals is ',num2str(100*(rdta_margsum.^2)),'% ']);
     disp(['Variance explained by model fit of marginals sum is ',num2str(100*r2margsum),'% .',...
         ' model F-val= ',num2str(round(f_margsum,2)),' p= ',num2str(round(p_margsum,3))]);
     disp(['Separability index from SVD factors is ',num2str(sepindex)]);
