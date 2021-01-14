@@ -10,6 +10,7 @@
 %        elec = electrode number whose RF location to be used, default 85 ecog
 %               or [a e r], 3 element vector with Azi, Ele, Radius in Pixels
 % STK 031220
+% 140121: changed phase calculation to use 4quad tan instead of dft phase.
 
 function [imgis,filt1,mP,imgResp] =filterSingleImage(subject,elec,imgIn,degppix,showflag)
 
@@ -38,7 +39,7 @@ nflagOut      = 1;   % scale output response value by best grating response
 % the following inputs need to be given
 if ~exist('subject','var') || isempty(subject), subject = 'alpaH'; end
 if ~exist('elec','var') || isempty(elec),       elec = 85;         end
-if ~exist('imgIn','var')|| isempty(imgIn),      imgIn= 1;          end
+if ~exist('imgIn','var')|| isempty(imgIn),      imgIn= 3;          end
 if ~exist('degppix','var'),                     degppix=[];        end
 if ~exist('showflag','var'),                    showflag=1;        end
 % 1. about the stimulus
@@ -159,7 +160,7 @@ end
 sP = nan(size(mP));   % mP= meanParameters (or best fit), sP= sigma but not used in present case. 
 
 % calculate phase
-mP = getDFTPh(imgVal,mP,degppix,DegIm,rfcol,rfrow,getBasicFlag,imgPrd,useSizes,SFs,Thetas);        
+mP = getPh(imgVal,mP,imgPrd,useSizes,SFs,Thetas); % ,degppix,DegIm,rfcol,rfrow,getBasicFlag  
    
 % calculate size
 [mP,~] = getSizeChecked2(imgVal,degppix,rfcol,rfrow,Sizes,mP,sP,1,ntypeFlag);
@@ -208,48 +209,43 @@ end
     
 end
 
-function [mP]= getDFTPh(allVals,mP,degppix,degIm,azi,ele,getBasic,imgProd,Sizes,SFs,Thetas)
+function [mP]= getPh(allVals,mP,imgProd,Sizes,SFs,Thetas) % ,degppix,degIm,azi,ele,getBasic
 % allVals has images
 % mP has all other features
 
-defaultsize = 1;  % if none provided, use this sigma to Gaussian mask image section we want. 
-res = size(allVals,1);
-
-% ready for a symmetrical Gaussian envelope at location
-[columnsInImage, rowsInImage] = meshgrid(1:res, 1:res);
-
 for im = 1:size(allVals,3)
-   if isnan(mP(1,im)) || isempty(mP(1,im)) || mP(1,im)==0  % should not arise ideally
-      mP(1,im) = defaultsize;
-   end  
-   sd = mP(1,im)/degppix;
-   gaus = exp( ((columnsInImage-azi).^2+(rowsInImage-ele).^2)/-(2*(sd)^2) );   % ranges from 0-1
+    useProd =  imgProd{im};
+    indS = getClosestInd(Sizes,mP(1,im));
+    indF = getClosestInd(SFs,mP(2,im));
+    indT = getClosestInd(Thetas,mP(3,im));
     
-   % ph needs to be corrected. first, the phase detected for a 0 phase grating centered at RF?
-   [spatGab,isRad,~,~,~,~] = makeGratingFilter(mP(2,im), mP(3,im), mP(1,im), 0, 0, res, degppix, 0,getBasic); % large size   
-   [spatGabOut]= moveGratingFilter(azi, ele, spatGab, isRad);
-   ph0grating  = spatGabOut{1}{1};
-   [ph0] = getPhaseSelected(ph0grating, degppix, degIm, mP(2,im), mP(3,im));
-   
-   useVal = allVals(:,:,im).*gaus;  % smooth fade out the images using gaus
-   [ph]   = getPhaseSelected(useVal, degppix, degIm, mP(2,im), mP(3,im)); % get DFT phase at location 
-  
-   mP(4,im) = ph-ph0;
-   
+    useProd = squeeze(useProd(indS,indF,indT,:));
+    phout1(im) = atan2(useProd(2),useProd(1));
 end
+phout1(phout1<0) = phout1(phout1<0)+2*pi;
+mP(4,:) = phout1;
 
-% % try doing same using the 0 and pi/2 phase products available
-% % but atan has range -pi/2 to pi/2. It mistakes the 2nd and 3rd quadrant
+% defaultsize = 1;  % if none provided, use this sigma to Gaussian mask image section we want. 
+% res = size(allVals,1);
+% [columnsInImage, rowsInImage] = meshgrid(1:res, 1:res); % for a symmetrical Gaussian envelope at location
+% 
 % for im = 1:size(allVals,3)
-%     useProd =  imgProd{im};
-%     indS = getClosestInd(Sizes,mP(1,im));
-%     indF = getClosestInd(SFs,mP(2,im));
-%     indT = getClosestInd(Thetas,mP(3,im));
-%     
-%     useProd = squeeze(useProd(indS,indF,indT,:));
-%     phout1(im) = atan(useProd(2)/useProd(1));
+%    if isnan(mP(1,im)) || isempty(mP(1,im)) || mP(1,im)==0  % should not arise ideally
+%       mP(1,im) = defaultsize;
+%    end  
+%    sd = mP(1,im)/degppix;
+%    gaus = exp( ((columnsInImage-azi).^2+(rowsInImage-ele).^2)/-(2*(sd)^2) );   % ranges from 0-1
+%    % ph needs to be corrected. first, the phase detected for a 0 phase grating centered at RF?
+%    [spatGab,isRad,~,~,~,~] = makeGratingFilter(mP(2,im), mP(3,im), mP(1,im), 0, 0, res, degppix, 0,getBasic); % large size   
+%    [spatGabOut]= moveGratingFilter(azi, ele, spatGab, isRad);
+%    ph0grating  = spatGabOut{1}{1};
+%    [ph0] = getPhaseSelected(ph0grating, degppix, degIm, mP(2,im), mP(3,im));
+%    
+%    useVal = allVals(:,:,im).*gaus;  % smooth fade out the images using gaus
+%    [ph]   = getPhaseSelected(useVal, degppix, degIm, mP(2,im), mP(3,im)); % get DFT phase at location 
+%   
+%    mP(4,im) = ph-ph0;
 % end
-% mP(4,:) = phout1;
 
 end
 
